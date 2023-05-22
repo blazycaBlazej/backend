@@ -5,8 +5,9 @@ import mysql from 'mysql2'
 import express from 'express'
 import cors from 'cors'
 import jwt from 'jsonwebtoken'
+import serverless from 'serverless-http'
 
-const port = process.env.PORT 
+const port = process.env.PORT
 
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN
 
@@ -517,3 +518,5 @@ app.get('/admin', authMiddleware, (req, res) => {
 })
 
 // connection.end()
+
+export default serverless(app)
