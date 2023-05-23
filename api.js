@@ -35,8 +35,8 @@ const connection = mysql.createConnection({
 // 	})
 // }
 
-
 const app = express()
+app.use(cors())
 
 app.listen(port, () => {
 	console.log('Server slucha')
@@ -49,8 +49,6 @@ connection.connect(error => {
 		console.log('Połączono z bazą danych MySQL!')
 	}
 })
-
-app.use(cors())
 
 app.use(express.json())
 
