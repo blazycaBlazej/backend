@@ -62,7 +62,7 @@ connection.connect(error =>
 
 app.use(cors())
 app.use(express.json())
-app.use(dbMiddleware)
+// app.use(dbMiddleware)
 
 app.use(function (req, res, next) {
 	// res.header("Access-Control-Allow-Origin", "*");
