@@ -17,6 +17,24 @@ const connection = mysql.createConnection({
 	database: process.env.DATABASE,
 })
 
+const dbMiddleware = (req, res, next) => {
+
+	connection.connect(err => {
+		if (err) {
+			console.error('error:', err)
+			return res.status(500).json({ message: 'error' })
+		}
+
+		next()
+
+		connection.end(err => {
+			if (err) {
+				console.error('error', err)
+			}
+		})
+	})
+}
+
 //git
 const authMiddleware = (req, res, next) => {
 	const token = req.headers['authorization']?.split(' ')[1]
@@ -44,6 +62,7 @@ connection.connect(error =>
 
 app.use(cors())
 app.use(express.json())
+app.use(dbMiddleware)
 
 app.use(function (req, res, next) {
 	// res.header("Access-Control-Allow-Origin", "*");
