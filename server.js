@@ -18,7 +18,6 @@ const connection = mysql.createConnection({
 })
 
 const dbMiddleware = (req, res, next) => {
-
 	connection.connect(err => {
 		if (err) {
 			console.error('error:', err)
@@ -88,16 +87,16 @@ app.post('/register', (req, res) => {
 			res.status(409).json({ error: 'The user already exists' })
 		} else {
 			connection.query(
-				'INSERT INTO users (email, password, fullName, wishlist, purchasedItemsId, instructorCourses) VALUES (?, ?, ?, ?, ?, ?)',
-				[email, password, fullName, '', '', ''],
+				'INSERT INTO users (email, password, fullName) VALUES (?, ?, ?)',
+				[email, password, fullName],
 				(error, result) => {
 					if (error) {
 						console.error('Database query error:', error)
 						res.status(500).json({ error: 'Internal server error' })
 					} else {
 						const userId = result.insertId
-						const token = jwt.sign({ email, password, fullName, userId }, ACCESS_TOKEN)
-						res.status(200).json({ message: 'User registered successfully', token, name: user.fullName })
+						const token = jwt.sign({ email, fullName, userId }, ACCESS_TOKEN)
+						res.status(200).json({ message: 'User registered successfully', token, name: fullName })
 					}
 				}
 			)
@@ -119,7 +118,7 @@ app.post('/login', (req, res) => {
 			if (user.password !== password) {
 				res.status(401).json({ error: 'Incorrect password or login' })
 			} else {
-				const token = jwt.sign({ email, fullName, userId }, ACCESS_TOKEN)
+				const token = jwt.sign({ email: email, fullName: user.fullName, userId: user.id }, ACCESS_TOKEN)
 				res.status(200).json({ message: 'Logged in successfully', token, name: user.fullName })
 			}
 		}
@@ -178,15 +177,35 @@ app.post('/buyCourse', authMiddleware, (req, res) => {
 	const user = req.user
 
 	connection.query(
-		`INSERT INTO userCourses (user_id, course_id)
-		VALUES  (?, ?)`,
+		`SELECT * FROM userWishCourses WHERE user_id=? AND course_id=?`,
 		[user.userId, id],
 		(error, results) => {
 			if (error) {
 				console.error('Database query error:', error)
 				res.status(500).json({ message: 'Internal server error' })
 			} else {
-				res.status(200).json({ message: 'Course was purchased' })
+				if (results) {
+					connection.query(`DELETE FROM userWishCourses WHERE user_id=? AND course_id=?`, [user.userId, id], error => {
+						if (error) {
+							console.error('Database query error:', error)
+							res.status(500).json({ message: 'Internal server error' })
+						} else {
+							connection.query(
+								`INSERT INTO userCourses (user_id, course_id)
+								VALUES  (?, ?)`,
+								[user.userId, id],
+								(error, results) => {
+									if (error) {
+										console.error('Database query error:', error)
+										res.status(500).json({ message: 'Internal server error' })
+									} else {
+										res.status(200).json({ message: 'Course was purchased' })
+									}
+								}
+							)
+						}
+					})
+				}
 			}
 		}
 	)
@@ -373,7 +392,12 @@ app.get('/getWishListCourses', authMiddleware, (req, res) => {
 
 //git
 app.get('/courses', (req, res) => {
-	const { category } = req.query
+	let { category } = req.query
+	let newCateogry
+
+	if (category === 'personal-development') category = 'Personal Development'
+	if (category === 'it-and-software') category = 'IT and Software'
+
 	const query = category ? 'SELECT * FROM courses WHERE category = ?' : 'SELECT * FROM courses'
 	const params = category ? [category] : []
 
